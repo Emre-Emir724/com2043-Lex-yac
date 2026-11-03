@@ -1,0 +1,377 @@
+<!doctype html><html><head><meta charset=utf-8><title>MPL Technical Report</title>
+<style>
+body{font-family:"DejaVu Serif",Georgia,serif;font-size:11pt;line-height:1.45;color:#111;margin:0}
+h1{font-size:20pt;margin:0 0 4px} h2{font-size:14pt;margin:22px 0 6px;border-bottom:1px solid #999} h3{font-size:12pt;margin:14px 0 4px}
+pre{font-family:"DejaVu Sans Mono",monospace;font-size:8.5pt;background:#f4f4f4;border:1px solid #ddd;padding:6px 8px;white-space:pre-wrap;page-break-inside:avoid}
+code{font-family:"DejaVu Sans Mono",monospace;font-size:9pt}
+table{border-collapse:collapse;width:100%;font-size:9.5pt;margin:6px 0} td,th{border:1px solid #aaa;padding:3px 6px;text-align:left;vertical-align:top} th{background:#eee}
+td.ok{color:#1a7a1a} td.er{color:#a01818} img{width:100%;border:1px solid #888;margin:6px 0;page-break-inside:avoid}
+.title{text-align:center;margin:60px 0 40px} .title p{margin:4px}
+.pb{page-break-before:always}
+h2,h3{page-break-after:avoid} table{page-break-inside:auto} tr{page-break-inside:avoid} ul,p{orphans:3;widows:3}
+</style></head><body>
+<div class=title>
+<h1>MPL (My Programming Language)</h1>
+<p>COM2043 Programming Language Concepts, Project 1</p>
+<p>Lexical and Syntax Analysis Using Lex and Yacc</p>
+<p style="margin-top:30px">Student: ______________________ &nbsp;&nbsp; Student No: ______________</p>
+<p>Date: November 2026</p>
+</div>
+
+<h2>1. Introduction</h2>
+<p>In this project I designed a small programming language called MPL and wrote a lexical analyzer (<code>mpl.l</code>) with Lex and a syntax analyzer (<code>mpl.y</code>) with Yacc for it. The analyzer reads an MPL program and prints <code>OK</code> if the program follows the grammar. If it does not, it prints an error message with the line number. As the assignment says, it only checks the syntax: there is no type checking and the programs are not executed.</p>
+<p>I tried to make MPL look different from C. For example a program is written between <code>start</code> and <code>finish</code>, assignment is an arrow <code>&lt;-</code>, the if statement is called <code>when</code>, and the logical operators are words (<code>and</code>, <code>or</code>, <code>not</code>). I also added three built-in functions with Turkish names: <code>rastgele</code>, <code>KOCAMAN</code> and <code>kucuk</code>.</p>
+
+<h2>2. Language Design</h2>
+<h3>2.1 Program structure</h3>
+<ul>
+<li>Every program starts with the keyword <code>start</code> and ends with the keyword <code>finish</code>.</li>
+<li>Between them there is a list of statements. The list can be empty.</li>
+<li>Simple statements (declaration, assignment, show, ask, function call) end with a semicolon <code>;</code>. Block statements end with their own closing keyword (<code>endwhen</code>, <code>endwhile</code>), and <code>repeat ... until (cond);</code> ends with a semicolon.</li>
+<li>Comments: <code>##</code> starts a comment until the end of the line. <code>#*</code> ... <code>*#</code> is a comment that can be over many lines.</li>
+<li>Spaces, tabs and new lines are ignored, so the program can be indented freely.</li>
+</ul>
+<pre>## a small MPL program
+start
+    num: n &lt;- 5;
+    while (n &gt; 0) do
+        show(n);
+        n &lt;- n - 1;
+    endwhile
+    show("liftoff!");
+finish</pre>
+
+<h3>2.2 Data types and declarations</h3>
+<table><tr><th>Type</th><th>Meaning</th><th>Constants</th></tr>
+<tr><td><code>num</code></td><td>integer</td><td><code>0</code>, <code>42</code></td></tr>
+<tr><td><code>real</code></td><td>floating point</td><td><code>3.14</code>, <code>25.5</code></td></tr>
+<tr><td><code>letter</code></td><td>one character</td><td><code>'A'</code>, <code>'\n'</code>, <code>'\t'</code></td></tr>
+<tr><td><code>flag</code></td><td>true / false</td><td><code>yes</code>, <code>no</code></td></tr>
+<tr><td><code>text</code></td><td>string</td><td><code>"hello"</code></td></tr></table>
+<p>A declaration is the type, a colon, and a list of names separated by commas. Any name can get a starting value with <code>&lt;-</code>. Declarations can be written anywhere a statement can.</p>
+<pre>num: counter &lt;- 0, limit &lt;- 10, total;
+real: average, temperature &lt;- 25.5;
+letter: grade &lt;- 'A';
+flag: done &lt;- no;
+text: name &lt;- "MPL";</pre>
+<p>Negative numbers are written with unary minus, for example <code>-5</code>. Checking that a variable is declared before it is used is semantic analysis, so it is not done.</p>
+
+<h3>2.3 Identifiers</h3>
+<p>A variable name must start with a letter. After that it can have letters, digits and underscores. It can't have spaces, and keywords and built-in names can't be used as variable names. Names are case-sensitive.</p>
+<pre>[a-zA-Z][a-zA-Z0-9_]*</pre>
+
+<h3>2.4 Assignment, input and output</h3>
+<pre>x &lt;- x + 1;              ## assignment
+show(x, "is the answer"); ## print one or more values
+ask(a, b);               ## read values into variables</pre>
+
+<h3>2.5 Operators</h3>
+<table><tr><th>Kind</th><th>Operators</th></tr>
+<tr><td>Arithmetic</td><td><code>+</code> add, <code>-</code> subtract, <code>*</code> multiply, <code>/</code> divide, <code>%</code> modulus, <code>^</code> power, unary <code>-</code></td></tr>
+<tr><td>Comparison</td><td><code>=</code> equal, <code>&lt;&gt;</code> not equal, <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code></td></tr>
+<tr><td>Logical</td><td><code>and</code>, <code>or</code>, <code>not</code></td></tr>
+<tr><td>Assignment</td><td><code>&lt;-</code></td></tr></table>
+<p>Because assignment is <code>&lt;-</code>, the single <code>=</code> is free to be used for "equal to".</p>
+
+<h3>2.6 Precedence and associativity</h3>
+<table><tr><th>Level</th><th>Operators</th><th>Associativity</th></tr>
+<tr><td>1 (highest)</td><td><code>( )</code>, function calls</td><td>-</td></tr>
+<tr><td>2</td><td><code>^</code></td><td>right</td></tr>
+<tr><td>3</td><td>unary <code>-</code></td><td>right</td></tr>
+<tr><td>4</td><td><code>*  /  %</code></td><td>left</td></tr>
+<tr><td>5</td><td><code>+  -</code></td><td>left</td></tr>
+<tr><td>6</td><td><code>=  &lt;&gt;  &lt;  &gt;  &lt;=  &gt;=</code></td><td>none (can't be chained)</td></tr>
+<tr><td>7</td><td><code>not</code></td><td>right</td></tr>
+<tr><td>8</td><td><code>and</code></td><td>left</td></tr>
+<tr><td>9 (lowest)</td><td><code>or</code></td><td>left</td></tr></table>
+<p>So arithmetic is done first, then comparisons, then logic. Some examples:</p>
+<ul>
+<li><code>a + b * c</code> means <code>a + (b * c)</code></li>
+<li><code>a - b - c</code> means <code>(a - b) - c</code> (left associative)</li>
+<li><code>2 ^ 3 ^ 2</code> means <code>2 ^ (3 ^ 2)</code> (right associative, like in maths)</li>
+<li><code>-x ^ 2</code> means <code>-(x ^ 2)</code></li>
+<li><code>a + 1 &gt; b and not c = d</code> means <code>((a + 1) &gt; b) and (not (c = d))</code></li>
+<li><code>a &lt; b &lt; c</code> is a syntax error, because comparisons are non-associative</li>
+<li>Parentheses change the order: <code>(a + b) * c</code></li>
+</ul>
+<p>These rules are written in <code>mpl.y</code> with <code>%left</code>, <code>%right</code> and <code>%nonassoc</code> (see section 5.2).</p>
+
+<h3>2.7 Conditional statement: when</h3>
+<pre>when (total &gt; 100) then
+    grade &lt;- 'A';
+orwhen (total &gt;= 50) then
+    grade &lt;- 'B';
+otherwise
+    grade &lt;- 'F';
+endwhen</pre>
+<p>The condition is always inside parentheses and is followed by <code>then</code>. After that come zero or more <code>orwhen</code> parts (like "else if"), then an optional <code>otherwise</code> part (like "else"). The statement always ends with <code>endwhen</code>. Since every <code>when</code> has its own <code>endwhen</code>, there is no "dangling else" problem.</p>
+
+<h3>2.8 Loops</h3>
+<pre>while (counter &lt; 10) do          repeat
+    counter &lt;- counter + 1;          limit &lt;- limit - 1;
+endwhile                         until (limit &lt;= 0);</pre>
+<p><code>while</code> checks the condition before each turn. <code>repeat ... until</code> runs the body first and stops when the condition becomes true. Loops and <code>when</code> statements can be nested inside each other.</p>
+
+<h3>2.9 Built-in functions</h3>
+<table><tr><th>Function</th><th>Meaning</th><th>Arguments</th></tr>
+<tr><td><code>rastgele(a, b)</code></td><td>random number between a and b ("rastgele" means random)</td><td>exactly 2</td></tr>
+<tr><td><code>KOCAMAN(t)</code></td><td>text t in upper case ("kocaman" means huge)</td><td>exactly 1</td></tr>
+<tr><td><code>kucuk(t)</code></td><td>text t in lower case ("küçük" means small)</td><td>exactly 1</td></tr></table>
+<p>The names are reserved words, so the grammar can check the number of arguments. <code>rastgele(1)</code> or <code>kucuk("a", "b")</code> is a syntax error. They can be used anywhere an expression can, even inside each other: <code>KOCAMAN(kucuk(name))</code>.</p>
+
+<h3>2.10 Differences from C</h3>
+<table><tr><th></th><th>MPL</th><th>C</th></tr>
+<tr><td>Program</td><td><code>start ... finish</code></td><td><code>int main() { ... }</code></td></tr>
+<tr><td>Assignment</td><td><code>x &lt;- 5;</code></td><td><code>x = 5;</code></td></tr>
+<tr><td>Equal / not equal</td><td><code>=</code> / <code>&lt;&gt;</code></td><td><code>==</code> / <code>!=</code></td></tr>
+<tr><td>Logic</td><td><code>and or not</code></td><td><code>&amp;&amp; || !</code></td></tr>
+<tr><td>Declaration</td><td><code>num: a, b &lt;- 2;</code></td><td><code>int a, b = 2;</code></td></tr>
+<tr><td>If</td><td><code>when ... orwhen ... otherwise ... endwhen</code></td><td><code>if ... else if ... else</code> with braces</td></tr>
+<tr><td>Loops</td><td><code>while ... do ... endwhile</code>, <code>repeat ... until</code></td><td><code>while</code>, <code>do ... while</code></td></tr>
+<tr><td>Comments</td><td><code>##</code> and <code>#* *#</code></td><td><code>//</code> and <code>/* */</code></td></tr>
+<tr><td>Power</td><td><code>^</code></td><td>none (pow function)</td></tr></table>
+
+<h2 class=pb>3. Lexical Rules (Tokens)</h2>
+<table><tr><th>Token</th><th>Pattern / lexemes</th></tr>
+<tr><td>Keywords</td><td><code>start finish num real letter flag text yes no when then orwhen otherwise endwhen while do endwhile repeat until show ask and or not</code></td></tr>
+<tr><td>Built-in names</td><td><code>rastgele KOCAMAN kucuk</code></td></tr>
+<tr><td>IDENT</td><td><code>[a-zA-Z][a-zA-Z0-9_]*</code></td></tr>
+<tr><td>INT_CONST</td><td><code>[0-9]+</code></td></tr>
+<tr><td>REAL_CONST</td><td><code>[0-9]+"."[0-9]+</code> (digits on both sides of the dot)</td></tr>
+<tr><td>CHAR_CONST</td><td><code>\'(.|\\n|\\t)\'</code> (one character, or <code>\n</code> / <code>\t</code>, in single quotes)</td></tr>
+<tr><td>STRING_CONST</td><td><code>\"[^"\n]*\"</code> (text in double quotes on one line)</td></tr>
+<tr><td>Arithmetic</td><td><code>+ - * / % ^</code></td></tr>
+<tr><td>Comparison</td><td><code>= &lt;&gt; &lt; &gt; &lt;= &gt;=</code></td></tr>
+<tr><td>Logical</td><td><code>and or not</code></td></tr>
+<tr><td>Assignment</td><td><code>&lt;-</code></td></tr>
+<tr><td>Punctuation</td><td><code>( ) , ; :</code></td></tr>
+<tr><td>Line comment</td><td><code>"##".*</code> (ignored)</td></tr>
+<tr><td>Block comment</td><td><code>#*</code> ... <code>*#</code> (ignored, done with a start condition)</td></tr>
+<tr><td>Whitespace</td><td><code>[ \t\r]+</code> and <code>\n</code> (ignored, new lines are counted)</td></tr></table>
+<p>The keyword rules are written before the identifier rule in <code>mpl.l</code>. When two rules match the same text, Lex picks the first one, so <code>while</code> becomes the WHILE token and not an IDENT. Lex also always takes the longest match, so <code>&lt;-</code>, <code>&lt;=</code> and <code>&lt;&gt;</code> are read as one token and not as <code>&lt;</code> followed by something else, and <code>3.5</code> is one REAL_CONST, not INT_CONST <code>3</code>. Any other character is a lexical error.</p>
+
+<h2>4. Grammar (BNF)</h2>
+<p>Nonterminals are in &lt; &gt;, terminals are in quotes or are token names. &epsilon; means empty.</p>
+<pre>&lt;program&gt;     ::= "start" &lt;stmts&gt; "finish"
+&lt;stmts&gt;       ::= &epsilon; | &lt;stmts&gt; &lt;stmt&gt;
+&lt;stmt&gt;        ::= &lt;declaration&gt; ";" | &lt;assignment&gt; ";" | &lt;show_stmt&gt; ";"
+                | &lt;ask_stmt&gt; ";" | &lt;call&gt; ";"
+                | &lt;when_stmt&gt; | &lt;while_stmt&gt; | &lt;repeat_stmt&gt;
+
+&lt;declaration&gt; ::= &lt;type&gt; ":" &lt;var_list&gt;
+&lt;type&gt;        ::= "num" | "real" | "letter" | "flag" | "text"
+&lt;var_list&gt;    ::= &lt;var&gt; | &lt;var_list&gt; "," &lt;var&gt;
+&lt;var&gt;         ::= IDENT | IDENT "&lt;-" &lt;expr&gt;
+
+&lt;assignment&gt;  ::= IDENT "&lt;-" &lt;expr&gt;
+&lt;show_stmt&gt;   ::= "show" "(" &lt;expr_list&gt; ")"
+&lt;ask_stmt&gt;    ::= "ask" "(" &lt;id_list&gt; ")"
+&lt;id_list&gt;     ::= IDENT | &lt;id_list&gt; "," IDENT
+
+&lt;when_stmt&gt;   ::= "when" "(" &lt;expr&gt; ")" "then" &lt;stmts&gt; &lt;orwhens&gt; &lt;otherwise&gt; "endwhen"
+&lt;orwhens&gt;     ::= &epsilon; | &lt;orwhens&gt; "orwhen" "(" &lt;expr&gt; ")" "then" &lt;stmts&gt;
+&lt;otherwise&gt;   ::= &epsilon; | "otherwise" &lt;stmts&gt;
+
+&lt;while_stmt&gt;  ::= "while" "(" &lt;expr&gt; ")" "do" &lt;stmts&gt; "endwhile"
+&lt;repeat_stmt&gt; ::= "repeat" &lt;stmts&gt; "until" "(" &lt;expr&gt; ")" ";"
+
+&lt;builtin&gt;     ::= "rastgele" "(" &lt;expr&gt; "," &lt;expr&gt; ")"
+                | "KOCAMAN" "(" &lt;expr&gt; ")"
+                | "kucuk" "(" &lt;expr&gt; ")"
+&lt;call&gt;        ::= IDENT "(" ")" | IDENT "(" &lt;expr_list&gt; ")"
+&lt;expr_list&gt;   ::= &lt;expr&gt; | &lt;expr_list&gt; "," &lt;expr&gt;
+
+&lt;expr&gt;        ::= &lt;expr&gt; "or" &lt;expr&gt; | &lt;expr&gt; "and" &lt;expr&gt; | "not" &lt;expr&gt;
+                | &lt;expr&gt; "=" &lt;expr&gt;  | &lt;expr&gt; "&lt;&gt;" &lt;expr&gt;
+                | &lt;expr&gt; "&lt;" &lt;expr&gt;  | &lt;expr&gt; "&gt;" &lt;expr&gt;
+                | &lt;expr&gt; "&lt;=" &lt;expr&gt; | &lt;expr&gt; "&gt;=" &lt;expr&gt;
+                | &lt;expr&gt; "+" &lt;expr&gt;  | &lt;expr&gt; "-" &lt;expr&gt;
+                | &lt;expr&gt; "*" &lt;expr&gt;  | &lt;expr&gt; "/" &lt;expr&gt; | &lt;expr&gt; "%" &lt;expr&gt;
+                | &lt;expr&gt; "^" &lt;expr&gt;  | "-" &lt;expr&gt; | "(" &lt;expr&gt; ")"
+                | &lt;builtin&gt; | &lt;call&gt; | IDENT
+                | INT_CONST | REAL_CONST | CHAR_CONST | STRING_CONST | "yes" | "no"</pre>
+<p>The <code>&lt;expr&gt;</code> rule on its own is ambiguous (for example <code>a + b * c</code> could be grouped in two ways). The ambiguity is solved with the precedence and associativity table in section 2.6, which is written in Yacc with precedence declarations. The same language can also be written without ambiguity by using one nonterminal for each level:</p>
+<pre>&lt;expr&gt;  ::= &lt;expr&gt; "or" &lt;and_e&gt; | &lt;and_e&gt;
+&lt;and_e&gt; ::= &lt;and_e&gt; "and" &lt;not_e&gt; | &lt;not_e&gt;
+&lt;not_e&gt; ::= "not" &lt;not_e&gt; | &lt;cmp&gt;
+&lt;cmp&gt;   ::= &lt;sum&gt; &lt;relop&gt; &lt;sum&gt; | &lt;sum&gt;
+&lt;sum&gt;   ::= &lt;sum&gt; "+" &lt;term&gt; | &lt;sum&gt; "-" &lt;term&gt; | &lt;term&gt;
+&lt;term&gt;  ::= &lt;term&gt; "*" &lt;unary&gt; | &lt;term&gt; "/" &lt;unary&gt; | &lt;term&gt; "%" &lt;unary&gt; | &lt;unary&gt;
+&lt;unary&gt; ::= "-" &lt;unary&gt; | &lt;power&gt;
+&lt;power&gt; ::= &lt;primary&gt; "^" &lt;unary&gt; | &lt;primary&gt;
+&lt;primary&gt; ::= "(" &lt;expr&gt; ")" | &lt;builtin&gt; | &lt;call&gt; | IDENT | &lt;constant&gt;
+&lt;relop&gt; ::= "=" | "&lt;&gt;" | "&lt;" | "&gt;" | "&lt;=" | "&gt;="</pre>
+
+<h2 class=pb>5. Implementation</h2>
+<h3>5.1 Lex file (mpl.l)</h3>
+<p><code>mpl.l</code> has one rule for every token in section 3. Each rule returns a token name (like <code>WHEN</code> or <code>IDENT</code>) to the parser. Operators made of one character return the character itself, for example <code>'+'</code>. A global variable <code>line_no</code> is increased at every new line, so error messages can show the line. The block comment uses a start condition <code>COMMENT</code>: after <code>#*</code> the lexer skips everything until <code>*#</code>, and if the file ends first it prints an error. A rule with <code>.</code> at the very end catches any character that is not part of MPL.</p>
+<h3>5.2 Yacc file (mpl.y)</h3>
+<p><code>mpl.y</code> has the token list, the precedence declarations and the grammar rules from section 4. The precedence part is:</p>
+<pre>%left OR
+%left AND
+%right NOT
+%nonassoc EQ NE LT GT LE GE
+%left '+' '-'
+%left '*' '/' '%'
+%right UMINUS
+%right '^'</pre>
+<p>In Yacc the lines further down have higher precedence, and <code>%left</code> / <code>%right</code> / <code>%nonassoc</code> give the associativity. Unary minus uses the same <code>-</code> character as subtraction, so the rule <code>'-' expr %prec UMINUS</code> gives it the higher precedence of the fake token <code>UMINUS</code>. With these declarations Yacc builds the parser with <b>no shift/reduce or reduce/reduce conflicts</b> (I checked with <code>yacc -v</code>).</p>
+<p>At the end of <code>mpl.y</code> the line <code>#include "lex.yy.c"</code> puts the lexer into the same C file, so only <code>y.tab.c</code> needs to be compiled. <code>main()</code> calls <code>yyparse()</code> and prints <code>OK</code> if it returns 0.</p>
+<h3>5.3 Error handling</h3>
+<p>When the parser finds a token that does not fit the grammar, Yacc calls <code>yyerror()</code>. My <code>yyerror()</code> prints the line number and the token where the error was found, then stops the program. If the file ended too early it says "unexpected end of file". Lexical errors (unknown character, unclosed comment) are printed by the lexer. The analyzer stops at the first error.</p>
+<pre>Syntax error at line 3 near '='
+Syntax error at line 4: unexpected end of file
+Error at line 2: unknown character '@'
+Error: comment is not closed with *#</pre>
+
+<h2>6. Compiling and Running</h2>
+<pre>lex mpl.l
+yacc mpl.y
+gcc -o mpl y.tab.c -lfl
+./mpl &lt; tests/valid/full_features.mpl</pre>
+<p>The first three lines are also in <code>build.sh</code>. <code>test.sh</code> runs <code>./mpl</code> on every file in <code>tests/valid</code> and <code>tests/invalid</code>. It was tested on Linux with flex 2.6 and GNU Bison (as <code>lex</code> and <code>yacc</code>) and gcc.</p>
+
+<h2 class=pb>7. Test Results</h2>
+<p>There are 4 valid programs and 17 invalid programs. Every valid program printed <code>OK</code> and every invalid program printed an error at the right line. The source of the valid test programs is in Appendix A and the invalid ones are in Appendix B.</p>
+<table><tr><th>File</th><th>What it tests</th><th>Expected</th><th>Output</th></tr><tr><td>tests/valid/builtins.mpl</td><td>valid program</td><td>OK</td><td class=ok>OK</td></tr><tr><td>tests/valid/countdown.mpl</td><td>valid program</td><td>OK</td><td class=ok>OK</td></tr><tr><td>tests/valid/full_features.mpl</td><td>valid program</td><td>OK</td><td class=ok>OK</td></tr><tr><td>tests/valid/minimal.mpl</td><td>valid program</td><td>OK</td><td class=ok>OK</td></tr><tr><td>tests/invalid/bad_identifier.mpl</td><td>Names must start with a letter. <code>2fast</code> is read as the number 2 then the name fast.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;2&#x27;</td></tr><tr><td>tests/invalid/builtin_as_name.mpl</td><td><code>rastgele</code> is a reserved built-in name.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;rastgele&#x27;</td></tr><tr><td>tests/invalid/c_style_assign.mpl</td><td>MPL uses <code>&lt;-</code> for assignment, not <code>=</code>.</td><td>error</td><td class=er>Syntax error at line 3 near &#x27;=&#x27;</td></tr><tr><td>tests/invalid/chained_comparison.mpl</td><td>Comparison operators are non-associative.</td><td>error</td><td class=er>Syntax error at line 3 near &#x27;&lt;&#x27;</td></tr><tr><td>tests/invalid/double_operator.mpl</td><td>Two operators next to each other.</td><td>error</td><td class=er>Syntax error at line 3 near &#x27;*&#x27;</td></tr><tr><td>tests/invalid/keyword_as_name.mpl</td><td><code>while</code> is a keyword.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;while&#x27;</td></tr><tr><td>tests/invalid/kocaman_no_args.mpl</td><td><code>KOCAMAN</code> needs exactly one argument.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;)&#x27;</td></tr><tr><td>tests/invalid/kucuk_two_args.mpl</td><td><code>kucuk</code> needs exactly one argument.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;,&#x27;</td></tr><tr><td>tests/invalid/missing_endwhen.mpl</td><td><code>when</code> block is not closed with <code>endwhen</code>.</td><td>error</td><td class=er>Syntax error at line 5 near &#x27;finish&#x27;</td></tr><tr><td>tests/invalid/missing_finish.mpl</td><td>Program does not end with <code>finish</code>.</td><td>error</td><td class=er>Syntax error at line 4: unexpected end of file</td></tr><tr><td>tests/invalid/missing_semicolon.mpl</td><td>No <code>;</code> after the declaration on line 2.</td><td>error</td><td class=er>Syntax error at line 3 near &#x27;x&#x27;</td></tr><tr><td>tests/invalid/rastgele_one_arg.mpl</td><td><code>rastgele</code> needs exactly two arguments.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;)&#x27;</td></tr><tr><td>tests/invalid/rastgele_three_args.mpl</td><td><code>rastgele</code> needs exactly two arguments.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;,&#x27;</td></tr><tr><td>tests/invalid/unbalanced_paren.mpl</td><td>Missing <code>)</code>.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;;&#x27;</td></tr><tr><td>tests/invalid/unclosed_comment.mpl</td><td>Block comment is never closed with <code>*#</code> (lexical error).</td><td>error</td><td class=er>Error: comment is not closed with *#</td></tr><tr><td>tests/invalid/unknown_character.mpl</td><td><code>@</code> is not part of MPL (lexical error).</td><td>error</td><td class=er>Error at line 2: unknown character &#x27;@&#x27;</td></tr><tr><td>tests/invalid/while_without_parens.mpl</td><td>The condition of <code>while</code> must be inside parentheses.</td><td>error</td><td class=er>Syntax error at line 3 near &#x27;x&#x27;</td></tr></table>
+<h3>Screenshots</h3>
+<p>Building the analyzer:</p><img src="../evidence/build.png">
+<p>Running valid programs:</p><img src="../evidence/valid.png">
+<p>Running invalid programs:</p><img src="../evidence/invalid.png">
+
+<h2>8. Conclusion</h2>
+<p>MPL meets all the minimum requirements of the assignment: it has a program structure, a regular expression for identifiers, five data types, declarations with initialization, six arithmetic operators, three logical operators, six comparison operators, precedence and associativity rules in Yacc, a conditional statement with else-if and else parts, two kinds of loops, and a complete grammar. On top of that I added the <code>orwhen</code> part, the <code>repeat ... until</code> loop, input/output statements, and three built-in functions. The lexer and parser work on all the test programs.</p>
+
+<h2 class=pb>Appendix A: Valid test programs</h2>
+<p><b>tests/valid/builtins.mpl</b></p><pre>## testing my functions
+start
+    num: zar &lt;- rastgele(1, 6);
+    num: big &lt;- rastgele(10, 20) * 2 + rastgele(-5, zar);
+    text: name &lt;- &quot;Big Man&quot;;
+    text: loud &lt;- KOCAMAN(name), quiet &lt;- kucuk(name);
+    loud &lt;- KOCAMAN(kucuk(&quot;MiXeD&quot;));
+
+    when (rastgele(0, 1) = 1 and KOCAMAN(name) &lt;&gt; name) then
+        show(KOCAMAN(&quot;heads&quot;));
+    otherwise
+        show(kucuk(&quot;TAILS&quot;));
+    endwhen
+finish
+</pre><p><b>tests/valid/countdown.mpl</b></p><pre>start
+    num: n &lt;- 5;
+    while (n &gt; 0) do
+        show(n);
+        n &lt;- n - 1;
+    endwhile
+    show(&quot;liftoff!&quot;);
+finish
+</pre><p><b>tests/valid/full_features.mpl</b></p><pre>## full test, uses everything in MPL
+start
+    ## declarations: several names, optional starting value
+    num: counter &lt;- 0, limit &lt;- 10, total;
+    real: average &lt;- 0.0, temperature &lt;- 25.5;
+    letter: grade &lt;- &#x27;A&#x27;, newline &lt;- &#x27;\n&#x27;;
+    flag: done &lt;- no, ready &lt;- yes;
+    text: name &lt;- &quot;MPL&quot;;
+
+    ask(total, temperature);
+
+    ## arithmetic with precedence, parentheses, power, modulus, unary minus
+    total &lt;- (counter + limit) * (total - 5) / 2 % 7;
+    average &lt;- -temperature ^ 2 + 3.75 * -(limit - 1);
+
+    ## when / orwhen / otherwise
+    when (total &gt; 100 and not done) then
+        grade &lt;- &#x27;A&#x27;;
+        show(&quot;big total: &quot;, total);
+    orwhen (total &gt;= 50 or average &lt;&gt; 0.0) then
+        grade &lt;- &#x27;B&#x27;;
+    orwhen (total = 0) then
+        grade &lt;- &#x27;C&#x27;;
+    otherwise
+        grade &lt;- &#x27;F&#x27;;
+    endwhen
+
+    ## while loop with a nested when
+    while (counter &lt; limit) do
+        counter &lt;- counter + 1;
+        when (counter % 2 = 0) then
+            show(counter);
+        endwhen
+    endwhile
+
+    ## repeat-until loop
+    repeat
+        limit &lt;- limit - 1;
+    until (limit &lt;= 0 or done = yes);
+
+    show(name, grade, average);
+finish
+</pre><p><b>tests/valid/minimal.mpl</b></p><pre>## smallest program
+start
+finish
+</pre>
+<h2 class=pb>Appendix B: Invalid test programs</h2>
+<p><b>tests/invalid/bad_identifier.mpl</b></p><pre>start
+    num: 2fast &lt;- 3;
+finish
+</pre><p><b>tests/invalid/builtin_as_name.mpl</b></p><pre>start
+    num: rastgele &lt;- 4;
+finish
+</pre><p><b>tests/invalid/c_style_assign.mpl</b></p><pre>start
+    num: x;
+    x = 5;
+finish
+</pre><p><b>tests/invalid/chained_comparison.mpl</b></p><pre>start
+    num: a &lt;- 1, b &lt;- 2;
+    flag: f &lt;- a &lt; b &lt; 3;
+finish
+</pre><p><b>tests/invalid/double_operator.mpl</b></p><pre>start
+    num: x &lt;- 1;
+    x &lt;- x * * 2;
+finish
+</pre><p><b>tests/invalid/keyword_as_name.mpl</b></p><pre>start
+    num: while &lt;- 3;
+finish
+</pre><p><b>tests/invalid/kocaman_no_args.mpl</b></p><pre>start
+    text: t &lt;- KOCAMAN();
+finish
+</pre><p><b>tests/invalid/kucuk_two_args.mpl</b></p><pre>start
+    text: t &lt;- kucuk(&quot;A&quot;, &quot;B&quot;);
+finish
+</pre><p><b>tests/invalid/missing_endwhen.mpl</b></p><pre>start
+    num: x &lt;- 1;
+    when (x &gt; 0) then
+        show(x);
+finish
+</pre><p><b>tests/invalid/missing_finish.mpl</b></p><pre>start
+    num: x &lt;- 1;
+    x &lt;- x + 1;
+</pre><p><b>tests/invalid/missing_semicolon.mpl</b></p><pre>start
+    num: x &lt;- 5
+    x &lt;- x + 1;
+finish
+</pre><p><b>tests/invalid/rastgele_one_arg.mpl</b></p><pre>start
+    num: x &lt;- rastgele(1);
+finish
+</pre><p><b>tests/invalid/rastgele_three_args.mpl</b></p><pre>start
+    num: x &lt;- rastgele(1, 2, 3);
+finish
+</pre><p><b>tests/invalid/unbalanced_paren.mpl</b></p><pre>start
+    num: x &lt;- (3 + 4;
+finish
+</pre><p><b>tests/invalid/unclosed_comment.mpl</b></p><pre>start
+    #* never closed
+    num: x;
+finish
+</pre><p><b>tests/invalid/unknown_character.mpl</b></p><pre>start
+    num: x &lt;- 1 @ 2;
+finish
+</pre><p><b>tests/invalid/while_without_parens.mpl</b></p><pre>start
+    num: x &lt;- 1;
+    while x &lt; 3 do
+        x &lt;- x + 1;
+    endwhile
+finish
+</pre>
+</body></html>

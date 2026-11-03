@@ -146,7 +146,10 @@ expr : expr OR expr
 
 void yyerror(const char *s)
 {
-    printf("Syntax error at line %d near '%s'\n", line_no, yytext);
+    if (yytext[0] == '\0')
+        printf("Syntax error at line %d: unexpected end of file\n", line_no);
+    else
+        printf("Syntax error at line %d near '%s'\n", line_no, yytext);
     exit(1);
 }
 
