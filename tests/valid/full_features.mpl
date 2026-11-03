@@ -1,5 +1,4 @@
-#* full_features.mpl
-   Uses every MPL feature at least once. *#
+## full test, uses everything in MPL
 start
     ## declarations: several names, optional starting value
     num: counter <- 0, limit <- 10, total;

@@ -1,4 +1,4 @@
-## Built-in functions: rastgele, KOCAMAN, kucuk
+## testing my functions
 start
     num: zar <- rastgele(1, 6);
     num: big <- rastgele(10, 20) * 2 + rastgele(-5, zar);

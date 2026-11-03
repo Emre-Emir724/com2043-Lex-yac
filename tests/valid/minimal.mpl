@@ -1,3 +1,3 @@
-## The smallest valid program
+## smallest program
 start
 finish
