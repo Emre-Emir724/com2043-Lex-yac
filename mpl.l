@@ -64,6 +64,11 @@ WS          [ \t\r]+
 "or"            { return OR; }
 "not"           { return NOT; }
 
+ /* ---------- Built-in functions (reserved names) ---------- */
+"rastgele"      { return RASTGELE; }
+"KOCAMAN"       { return KOCAMAN; }
+"kucuk"         { return KUCUK; }
+
  /* ---------- Multi-character operators ---------- */
 "<-"            { return ASSIGN; }
 "<="            { return LE; }

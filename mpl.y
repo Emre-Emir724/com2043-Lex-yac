@@ -24,6 +24,7 @@ extern char *yytext;
 %token WHEN THEN ORWHEN OTHERWISE ENDWHEN
 %token WHILE DO ENDWHILE REPEAT UNTIL
 %token SHOW ASK
+%token RASTGELE KOCAMAN KUCUK
 %token ASSIGN
 %token IDENT INT_CONST REAL_CONST CHAR_CONST STRING_CONST
 
@@ -128,6 +129,17 @@ repeat_stmt
     : REPEAT stmt_list UNTIL '(' expr ')' ';'
     ;
 
+/* ---------- Built-in functions ----------
+ *   rastgele(a, b)  random number between a and b   (exactly 2 arguments)
+ *   KOCAMAN(t)      text t in upper case             (exactly 1 argument)
+ *   kucuk(t)        text t in lower case             (exactly 1 argument)
+ */
+builtin_call
+    : RASTGELE '(' expr ',' expr ')'
+    | KOCAMAN '(' expr ')'
+    | KUCUK '(' expr ')'
+    ;
+
 /* ---------- Function calls:  name(arg, arg) ---------- */
 call
     : IDENT '(' ')'
@@ -158,6 +170,7 @@ expr
     | expr '^' expr
     | '-' expr %prec UMINUS
     | '(' expr ')'
+    | builtin_call
     | call
     | IDENT
     | constant

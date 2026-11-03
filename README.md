@@ -58,6 +58,7 @@ finish
 | Text constant | `"` any characters except a newline or unescaped `"` `"` |
 | Flag constant | `yes`, `no` |
 | Keywords | `start finish num real letter flag text yes no when then orwhen otherwise endwhen while do endwhile repeat until show ask and or not` |
+| Built-in function names | `rastgele KOCAMAN kucuk` (reserved and case-sensitive: `kocaman` is an ordinary name) |
 | Arithmetic operators | `+ - * / % ^` |
 | Logical operators | `and or not` |
 | Comparison operators | `= <> < > <= >=` |
@@ -82,6 +83,23 @@ Declarations start with the type and a colon, may list several names separated b
 and any name may be given a starting value with `<-`: `real: x, y <- 2.5, z;`.
 Declarations can appear anywhere a statement can.
 
+## Built-in functions
+
+MPL's built-in function names are Turkish, and their capitalisation hints at what they do.
+They are reserved words, and the grammar fixes how many arguments each one takes, so a
+wrong argument count is a syntax error. They can be used anywhere an expression can.
+
+| Function | Meaning | Arguments |
+|---|---|---|
+| `rastgele(a, b)` | a random number between `a` and `b` ("rastgele" = random) | exactly 2 |
+| `KOCAMAN(t)` | text `t` in UPPER CASE ("kocaman" = huge) | exactly 1 |
+| `kucuk(t)` | text `t` in lower case ("küçük" = small) | exactly 1 |
+
+```
+num: zar <- rastgele(1, 6);
+text: loud <- KOCAMAN("hello"), quiet <- kucuk("HELLO");
+```
+
 ## Operator precedence and associativity
 
 From highest to lowest. This is the order of the `%left`/`%right`/`%nonassoc`
@@ -89,7 +107,7 @@ declarations in `mpl.y` (which lists them lowest first).
 
 | Level | Operators | Associativity |
 |---|---|---|
-| 1 (highest) | `( )` grouping, function calls | n/a |
+| 1 (highest) | `( )` grouping, function and built-in calls | n/a |
 | 2 | `^` | right (`2 ^ 3 ^ 2` = `2 ^ (3 ^ 2)`) |
 | 3 | unary `-` | right (`-x ^ 2` = `-(x ^ 2)`) |
 | 4 | `* / %` | left |
@@ -147,7 +165,10 @@ additive       = term , { ( "+" | "-" ) , term } ;
 term           = unary , { ( "*" | "/" | "%" ) , unary } ;
 unary          = "-" , unary | power ;
 power          = primary , [ "^" , unary ] ;
-primary        = "(" , expr , ")" | call | IDENT | constant ;
+primary        = "(" , expr , ")" | builtin_call | call | IDENT | constant ;
+builtin_call   = "rastgele" , "(" , expr , "," , expr , ")"
+               | "KOCAMAN" , "(" , expr , ")"
+               | "kucuk" , "(" , expr , ")" ;
 constant       = INT_CONST | REAL_CONST | CHAR_CONST | STRING_CONST | "yes" | "no" ;
 ```
 
@@ -169,8 +190,9 @@ Lexical error at line 5: unterminated block comment (missing *#)
 ## Example programs
 
 - `tests/valid/full_features.mpl` uses every feature (all types, every operator, `when`/`orwhen`/`otherwise`, both loops, nesting, `show`, `ask`).
+- `tests/valid/builtins.mpl` uses the built-in functions.
 - `tests/valid/countdown.mpl` and `tests/valid/minimal.mpl` are small valid programs.
 - `tests/invalid/*.mpl` each contain one deliberate error, named after the error
   (missing `;`, C-style `=` assignment, missing `endwhen`, unbalanced parentheses,
   a keyword used as a name, an identifier starting with a digit, `* *`, missing `finish`,
-  `while` without parentheses, an unknown character, an unclosed comment, and a chained comparison).
+  `while` without parentheses, an unknown character, an unclosed comment, a chained comparison, and built-ins called with the wrong number of arguments or used as a variable name).
