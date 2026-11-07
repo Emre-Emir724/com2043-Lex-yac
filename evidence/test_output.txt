@@ -1,0 +1,23 @@
+--- valid programs (should say OK) ---
+tests/valid/builtins.mpl: OK
+tests/valid/countdown.mpl: OK
+tests/valid/full_features.mpl: OK
+tests/valid/minimal.mpl: OK
+--- invalid programs (should give an error) ---
+tests/invalid/bad_identifier.mpl: Syntax error at line 2 near '2'
+tests/invalid/builtin_as_name.mpl: Syntax error at line 2 near 'rastgele'
+tests/invalid/c_style_assign.mpl: Syntax error at line 3 near '='
+tests/invalid/chained_comparison.mpl: Syntax error at line 3 near '<'
+tests/invalid/double_operator.mpl: Syntax error at line 3 near '*'
+tests/invalid/keyword_as_name.mpl: Syntax error at line 2 near 'while'
+tests/invalid/kocaman_no_args.mpl: Syntax error at line 2 near ')'
+tests/invalid/kucuk_two_args.mpl: Syntax error at line 2 near ','
+tests/invalid/missing_endwhen.mpl: Syntax error at line 5 near 'finish'
+tests/invalid/missing_finish.mpl: Syntax error at line 4: unexpected end of file
+tests/invalid/missing_semicolon.mpl: Syntax error at line 3 near 'x'
+tests/invalid/rastgele_one_arg.mpl: Syntax error at line 2 near ')'
+tests/invalid/rastgele_three_args.mpl: Syntax error at line 2 near ','
+tests/invalid/unbalanced_paren.mpl: Syntax error at line 2 near ';'
+tests/invalid/unclosed_comment.mpl: Error: comment is not closed with *#
+tests/invalid/unknown_character.mpl: Error at line 2: unknown character '@'
+tests/invalid/while_without_parens.mpl: Syntax error at line 3 near 'x'

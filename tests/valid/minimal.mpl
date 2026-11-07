@@ -1,0 +1,3 @@
+## smallest program
+start
+finish
