@@ -14,7 +14,7 @@ h2,h3{page-break-after:avoid} table{page-break-inside:auto} tr{page-break-inside
 <h1>MPL (My Programming Language)</h1>
 <p>COM2043 Programming Language Concepts, Project 1</p>
 <p>Lexical and Syntax Analysis Using Lex and Yacc</p>
-<p style="margin-top:30px">Student: ______________________ &nbsp;&nbsp; Student No: ______________</p>
+<p style="margin-top:30px">Student: Emre Emir &nbsp;&nbsp; Student No: 24290405</p>
 <p>Date: November 2026</p>
 </div>
 
@@ -216,7 +216,7 @@ endwhile                         until (limit &lt;= 0);</pre>
 %right UMINUS
 %right '^'</pre>
 <p>In Yacc the lines further down have higher precedence, and <code>%left</code> / <code>%right</code> / <code>%nonassoc</code> give the associativity. Unary minus uses the same <code>-</code> character as subtraction, so the rule <code>'-' expr %prec UMINUS</code> gives it the higher precedence of the fake token <code>UMINUS</code>. With these declarations Yacc builds the parser with <b>no shift/reduce or reduce/reduce conflicts</b> (I checked with <code>yacc -v</code>).</p>
-<p>At the end of <code>mpl.y</code> the line <code>#include "lex.yy.c"</code> puts the lexer into the same C file, so only <code>y.tab.c</code> needs to be compiled. <code>main()</code> calls <code>yyparse()</code> and prints <code>OK</code> if it returns 0.</p>
+<p>At the end of <code>mpl.y</code> the line <code>#include "lex.yy.c"</code> puts the lexer into the same C file, so only <code>mpl.tab.c</code> needs to be compiled. <code>main()</code> calls <code>yyparse()</code> and prints <code>OK</code> if it returns 0.</p>
 <h3>5.3 Error handling</h3>
 <p>When the parser finds a token that does not fit the grammar, Yacc calls <code>yyerror()</code>. My <code>yyerror()</code> prints the line number and the token where the error was found, then stops the program. If the file ended too early it says "unexpected end of file". Lexical errors (unknown character, unclosed comment) are printed by the lexer. The analyzer stops at the first error.</p>
 <pre>Syntax error at line 3 near '='
@@ -225,19 +225,19 @@ Error at line 2: unknown character '@'
 Error: comment is not closed with *#</pre>
 
 <h2>6. Compiling and Running</h2>
-<pre>lex mpl.l
-yacc mpl.y
-gcc -o mpl y.tab.c -lfl
+<pre>bison -d mpl.y
+flex mpl.l
+gcc mpl.tab.c -o mpl
 ./mpl &lt; tests/valid/full_features.mpl</pre>
-<p>The first three lines are also in <code>build.sh</code>. <code>test.sh</code> runs <code>./mpl</code> on every file in <code>tests/valid</code> and <code>tests/invalid</code>. It was tested on Linux with flex 2.6 and GNU Bison (as <code>lex</code> and <code>yacc</code>) and gcc.</p>
+<p>The first three lines are also in <code>build.sh</code>. <code>test.sh</code> runs <code>./mpl</code> on every file in <code>tests/valid</code> and <code>tests/invalid</code>. It was tested on macOS and on Linux with flex, GNU Bison and gcc. Because <code>mpl.l</code> has <code>%option noyywrap</code>, no <code>-lfl</code> is needed.</p>
 
 <h2 class=pb>7. Test Results</h2>
 <p>There are 4 valid programs and 17 invalid programs. Every valid program printed <code>OK</code> and every invalid program printed an error at the right line. The source of the valid test programs is in Appendix A and the invalid ones are in Appendix B.</p>
 <table><tr><th>File</th><th>What it tests</th><th>Expected</th><th>Output</th></tr><tr><td>tests/valid/builtins.mpl</td><td>valid program</td><td>OK</td><td class=ok>OK</td></tr><tr><td>tests/valid/countdown.mpl</td><td>valid program</td><td>OK</td><td class=ok>OK</td></tr><tr><td>tests/valid/full_features.mpl</td><td>valid program</td><td>OK</td><td class=ok>OK</td></tr><tr><td>tests/valid/minimal.mpl</td><td>valid program</td><td>OK</td><td class=ok>OK</td></tr><tr><td>tests/invalid/bad_identifier.mpl</td><td>Names must start with a letter. <code>2fast</code> is read as the number 2 then the name fast.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;2&#x27;</td></tr><tr><td>tests/invalid/builtin_as_name.mpl</td><td><code>rastgele</code> is a reserved built-in name.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;rastgele&#x27;</td></tr><tr><td>tests/invalid/c_style_assign.mpl</td><td>MPL uses <code>&lt;-</code> for assignment, not <code>=</code>.</td><td>error</td><td class=er>Syntax error at line 3 near &#x27;=&#x27;</td></tr><tr><td>tests/invalid/chained_comparison.mpl</td><td>Comparison operators are non-associative.</td><td>error</td><td class=er>Syntax error at line 3 near &#x27;&lt;&#x27;</td></tr><tr><td>tests/invalid/double_operator.mpl</td><td>Two operators next to each other.</td><td>error</td><td class=er>Syntax error at line 3 near &#x27;*&#x27;</td></tr><tr><td>tests/invalid/keyword_as_name.mpl</td><td><code>while</code> is a keyword.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;while&#x27;</td></tr><tr><td>tests/invalid/kocaman_no_args.mpl</td><td><code>KOCAMAN</code> needs exactly one argument.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;)&#x27;</td></tr><tr><td>tests/invalid/kucuk_two_args.mpl</td><td><code>kucuk</code> needs exactly one argument.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;,&#x27;</td></tr><tr><td>tests/invalid/missing_endwhen.mpl</td><td><code>when</code> block is not closed with <code>endwhen</code>.</td><td>error</td><td class=er>Syntax error at line 5 near &#x27;finish&#x27;</td></tr><tr><td>tests/invalid/missing_finish.mpl</td><td>Program does not end with <code>finish</code>.</td><td>error</td><td class=er>Syntax error at line 4: unexpected end of file</td></tr><tr><td>tests/invalid/missing_semicolon.mpl</td><td>No <code>;</code> after the declaration on line 2.</td><td>error</td><td class=er>Syntax error at line 3 near &#x27;x&#x27;</td></tr><tr><td>tests/invalid/rastgele_one_arg.mpl</td><td><code>rastgele</code> needs exactly two arguments.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;)&#x27;</td></tr><tr><td>tests/invalid/rastgele_three_args.mpl</td><td><code>rastgele</code> needs exactly two arguments.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;,&#x27;</td></tr><tr><td>tests/invalid/unbalanced_paren.mpl</td><td>Missing <code>)</code>.</td><td>error</td><td class=er>Syntax error at line 2 near &#x27;;&#x27;</td></tr><tr><td>tests/invalid/unclosed_comment.mpl</td><td>Block comment is never closed with <code>*#</code> (lexical error).</td><td>error</td><td class=er>Error: comment is not closed with *#</td></tr><tr><td>tests/invalid/unknown_character.mpl</td><td><code>@</code> is not part of MPL (lexical error).</td><td>error</td><td class=er>Error at line 2: unknown character &#x27;@&#x27;</td></tr><tr><td>tests/invalid/while_without_parens.mpl</td><td>The condition of <code>while</code> must be inside parentheses.</td><td>error</td><td class=er>Syntax error at line 3 near &#x27;x&#x27;</td></tr></table>
 <h3>Screenshots</h3>
-<p>Building the analyzer:</p><img src="../evidence/build.png">
-<p>Running valid programs:</p><img src="../evidence/valid.png">
-<p>Running invalid programs:</p><img src="../evidence/invalid.png">
+<p>These are from my own terminal (macOS). Building the analyzer:</p><img src="../evidence/build.png" style="width:75%">
+<p>Running valid programs:</p><img src="../evidence/valid.png" style="width:75%">
+<p>Running some of the invalid programs:</p><img src="../evidence/invalid.png" style="width:75%">
 
 <h2>8. Conclusion</h2>
 <p>MPL meets all the minimum requirements of the assignment: it has a program structure, a regular expression for identifiers, five data types, declarations with initialization, six arithmetic operators, three logical operators, six comparison operators, precedence and associativity rules in Yacc, a conditional statement with else-if and else parts, two kinds of loops, and a complete grammar. On top of that I added the <code>orwhen</code> part, the <code>repeat ... until</code> loop, input/output statements, and three built-in functions. The lexer and parser work on all the test programs.</p>

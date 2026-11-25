@@ -10,7 +10,7 @@ sh build.sh
 ./mpl < tests/valid/full_features.mpl
 ```
 
-build.sh just runs `lex mpl.l`, `yacc mpl.y` and `gcc -o mpl y.tab.c -lfl`.
+build.sh just runs `bison -d mpl.y`, `flex mpl.l` and `gcc mpl.tab.c -o mpl`.
 `./test.sh` runs all the example programs in the tests folder.
 
 ## Example
