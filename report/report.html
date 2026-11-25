@@ -238,6 +238,7 @@ gcc mpl.tab.c -o mpl
 <p>These are from my own terminal (macOS). Building the analyzer:</p><img src="../evidence/build.png" style="width:75%">
 <p>Running valid programs:</p><img src="../evidence/valid.png" style="width:75%">
 <p>Running some of the invalid programs:</p><img src="../evidence/invalid.png" style="width:75%">
+<p>Running all the test programs at once with <code>sh test.sh</code>. All 4 valid programs print OK and all 17 invalid programs give an error. (macOS <code>sh</code> does not support <code>echo -n</code>, so it printed "-n" before each file name. I changed <code>test.sh</code> to use <code>printf</code> after this run.)</p><img src="../evidence/test_sh_run.png" style="width:55%">
 
 <h2>8. Conclusion</h2>
 <p>MPL meets all the minimum requirements of the assignment: it has a program structure, a regular expression for identifiers, five data types, declarations with initialization, six arithmetic operators, three logical operators, six comparison operators, precedence and associativity rules in Yacc, a conditional statement with else-if and else parts, two kinds of loops, and a complete grammar. On top of that I added the <code>orwhen</code> part, the <code>repeat ... until</code> loop, input/output statements, and three built-in functions. The lexer and parser work on all the test programs.</p>
